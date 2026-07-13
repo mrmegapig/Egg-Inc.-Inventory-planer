@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Elite Inventory Organizer</title>
+    <style>
+        :root { --bg: #0d1117; --panel: #161b22; --text: #c9d1d9; --border: #30363d; --accent: #4ade80; --star: #ffb300; }
+        [data-theme="light"] { --bg: #f4f6f9; --panel: #ffffff; --text: #333; --border: #ddd; }
+        
+        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        header { background: #21262d; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        #theme-btn { background: var(--border); border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; color: var(--text); font-weight: bold; }
+        #theme-btn:hover { background: var(--accent); color: #000; }
+        .disclaimer { font-size: 12px; color: #8b949e; margin: 10px 0 20px 5px; font-style: italic; }
+        .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+        .group-header { background: var(--border); padding: 8px; font-weight: bold; margin-top: 15px; border-radius: 4px; font-size: 14px; }
+        .artifact-item { padding: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .star { color: var(--star); cursor: help; }
+        .item-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .keep { color: var(--accent); } .salvage { color: #f87171; }
+        .no-cap-section { margin-top: 40px; padding: 25px; border: 2px dashed var(--border); border-radius: 8px; background: var(--panel); }
+        .no-cap-section h2 { color: var(--accent); margin-top: 0; }
+        .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
+        .guide-box { background: rgba(0,0,0,0.1); padding: 15px; border-radius: 6px; }
+        footer { text-align: center; margin-top: 40px; font-size: 14px; color: #8b949e; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Elite Inventory Organizer</h1>
+    <button id="theme-btn" onclick="toggleTheme()">Dark/Light Mode</button>
+</header>
+<div class="disclaimer">Disclaimer: Use this tool as a helpful guide, but always double-check before you salvage – no system is 100% bug-free!</div>
+
+<div class="main-layout">
+    <section class="panel">
+        <h2>Ziel-Artefakte wählen</h2>
+        <div id="selection-tree"></div>
+    </section>
+    <section class="panel">
+        <h2>Salvage- & Crafting-Status</h2>
+        <h3>KEEP</h3><div id="keep-list"></div>
+        <h3>SALVAGE</h3><div id="salvage-list"></div>
+    </section>
+</div>
+
+<section class="no-cap-section">
+    <h2>No-Cap Piggy Guide</h2>
+    <div class="guide-grid">
+        <div class="guide-box">
+            <h3>Preparation</h3>
+            <p>Determine which artifacts you won’t need for crafting. Save ALL components needed, sometimes down to the T1 artifacts required for crafting all the way up the chain. Regularly consume unneeded artifacts (Fridays are good). Avoid consuming during the event due to lag.</p>
+        </div>
+        <div class="guide-box">
+            <h3>During the Event</h3>
+            <p><strong>DON'T CONSUME:</strong> Gold (meteorites), Geodes, Titanium, Prophecy stones & fragments, Clarity stones & fragments. Be judicious with Soul stones & fragments (needed for Prophecy stones).</p>
+            <p><strong>CONSUME:</strong></p>
+            <ul>
+                <li>All fragments not listed in the "Don't consume" list.</li>
+                <li>Stray artifacts with small stacks.</li>
+                <li>Then consume the newly created fragments.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<footer>Have questions or suggestions? Reach out to me! – Made with 💚 by Mr_W</footer>
+
+<script>
+    // Vollständige DB basierend auf deinem Dokument[cite: 1]
+    const ARTIFACT_DB = {
+
+       "beggspoke-demeters-necklace-t4": { name: "Beggspoke Demeters necklace (T4)", tier: "T4", group: "Demeter's Necklace", keep: true, recipe: { "detailed-ship-in-a-bottle-t2": 9, "solar-titanium-geogon-t3": 3 } },
+"brilliant-dilithium-stone-t4": { name: "Brilliant dilithium stone (T4)", tier: "T4", group: "Dilithium Stone", keep: true, recipe: { "eggsquisite-dilithium-stone-t3": 15 } },
+"brilliant-light-of-eggendil-t4": { name: "Brilliant light of Eggendil (T4)", tier: "T4", group: "Light of Eggendil", keep: true, recipe: { "glowing-light-of-eggendil-t3": 10, "blazing-phoenix-feather-t4": 4 } },
+"brilliant-tachyon-stone-t4": { name: "Brilliant tachyon stone (T4)", tier: "T4", group: "Tachyon Stone", keep: true, recipe: { "eggsquisite-tachyon-stone-t3": 20 } },
+"brilliant-tungsten-ankh-t4": { name: "Brilliant tungsten ankh (T4)", tier: "T4", group: "Tungsten Ankh", keep: true, recipe: { "polished-tungsten-ankh-t3": 8, "solid-gold-meteorite-t3": 4 } },
+"clairvoyant-interstellar-compass-t4": { name: "Clairvoyant interstellar compass (T4)", tier: "T4", group: "Interstellar Compass", keep: true, recipe: { "precise-interstellar-compass-t3": 10, "radiant-tau-ceti-geode-t3": 4 } },
+"eggceptional-aurelian-brooch-t4": { name: "Eggceptional Aurelian brooch (T4)", tier: "T4", group: "Aurelian Brooch", keep: true, recipe: { "jeweled-aurelian-brooch-t3": 10, "solid-gold-meteorite-t3": 2 } },
+"eggceptional-clarity-stone-t4": { name: "Eggceptional clarity stone (T4)", tier: "T4", group: "Clarity Stone", keep: true, recipe: { "eggsquisite-clarity-stone-t3": 20, "radiant-prophecy-stone-t4": 2, "radiant-soul-stone-t4": 4 } },
+"eggceptional-life-stone-t4": { name: "Eggceptional life stone (T4)", tier: "T4", group: "Life Stone", keep: true, recipe: { "good-life-stone-t3": 15 } },
+"eggceptional-lunar-totem-t4": { name: "Eggceptional lunar totem (T4)", tier: "T4", group: "Lunar Totem", keep: true, recipe: { "powerful-lunar-totem-t3": 6, "solar-titanium-bar-t2": 1 } },
+"eggceptional-neodymium-medallion-t4": { name: "Eggceptional neodymium medallion (T4)", tier: "T4", group: "Neodymium Medallion", keep: true, recipe: { "precise-neodymium-medallion-t3": 6, "precise-interstellar-compass-t3": 2 } },
+"eggceptional-tachyon-deflector-t4": { name: "Eggceptional tachyon deflector (T4)", tier: "T4", group: "Tachyon Deflector", keep: true, recipe: { "robust-tachyon-deflector-t3": 12, "eggquisite-ship-in-a-bottle-t4": 4 } },
+"eggceptional-terra-stone-t4": { name: "Eggceptional terra stone (T4)", tier: "T4", group: "Terra Stone", keep: true, recipe: { "rich-terra-stone-t3": 20 } },
+"flawless-dilithium-monocle-t4": { name: "Flawless dilithium monocle (T4)", tier: "T4", group: "Dilithium Monocle", keep: true, recipe: { "eggsacting-dilithium-monocle-t3": 10, "meggnificent-mercurys-lens-t4": 2 } },
+"flawless-shell-stone-t4": { name: "Flawless shell stone (T4)", tier: "T4", group: "Shell Stone", keep: true, recipe: { "eggsquisite-shell-stone-t3": 10, "eggsquisite-dilithium-stone-t3": 5 } },
+"gilded-book-of-basan-t4": { name: "Gilded book of Basan (T4)", tier: "T4", group: "Book of Basan", keep: true, recipe: { "fortified-book-of-basan-t3": 12, "brilliant-light-of-eggendil-t4": 1, "blazing-phoenix-feather-t4": 4 } },
+"jeweled-gusset-t4": { name: "Jeweled gusset (T4)", tier: "T4", group: "Gusset", keep: true, recipe: { "distegguished-gusset-t3": 8, "solid-gold-meteorite-t3": 3 } },
+"meggnificent-carved-rainstick-t4": { name: "Meggnificent carved rainstick (T4)", tier: "T4", group: "Carved Rainstick", keep: true, recipe: { "ornate-carved-rainstick-t3": 9, "radiant-tau-ceti-geode-t3": 2 } },
+"radiant-prophecy-stone-t4": { name: "Radiant prophecy stone (T4)", tier: "T4", group: "Prophecy Stone", keep: true, recipe: { "eggsquisite-prophecy-stone-t3": 12, "radiant-soul-stone-t4": 2 } },
+"unsolvable-puzzle-cube-t4": { name: "Unsolvable puzzle cube (T4)", tier: "T4", group: "Puzzle Cube", keep: true, recipe: { "mystical-puzzle-cube-t3": 10, "solid-gold-meteorite-t3": 2 } },
+"eggsquisite-dilithium-stone-t3": { name: "Eggsquisite dilithium stone (T3)", tier: "T3", group: "Dilithium Stone", keep: false, recipe: { "quantum-stone-fragment-t1": 20 } },
+"glowing-light-of-eggendil-t3": { name: "Glowing light of Eggendil (T3)", tier: "T3", group: "Light of Eggendil", keep: false, recipe: { "lunar-stone-fragment-t1": 20 } },
+"radiant-tau-ceti-geode-t3": { name: "Radiant Tau Ceti geode (T3)", tier: "T3", group: "Tau Ceti Geode", keep: false, recipe: { "glimmering-tau-ceti-geode-t2": 14 } },
+"solar-titanium-bar-t2": { name: "Solar titanium bar (T2)", tier: "T2", group: "Solar Titanium", keep: false, recipe: {} },
+"glimmering-tau-ceti-geode-t2": { name: "Glimmering Tau Ceti geode (T2)", tier: "T2", group: "Tau Ceti Geode", keep: false, recipe: { "solar-titanium-ore-t1": 10 } },
+"solar-titanium-ore-t1": { name: "Solar titanium ore (T1)", tier: "T1", group: "Solar Titanium", keep: false, recipe: { "solar-titanium-bar-t2": 12 } },
+"tiny-gold-meteorite-t1": { name: "Tiny gold meteorite (T1)", tier: "T1", group: "Gold Meteorite", keep: false, recipe: { "enriched-gold-meteorite-t2": 11 } },
+"quantum-stone-fragment-t1": { name: "Quantum stone fragment (T1)", tier: "T1", group: "Quantum Stone", keep: false, recipe: {} },
+"meggnificent-lunar-stone-t4": { name: "Meggnificent lunar stone (T4)", tier: "T4", group: "Lunar Stone", keep: true, recipe: { "eggsquisite-lunar-stone-t3": 25 } },
+"meggnificent-quantum-stone-t4": { name: "Meggnificent quantum stone (T4)", tier: "T4", group: "Quantum Stone", keep: true, recipe: { "phased-quantum-stone-t3": 20 } },
+"prime-vial-of-martian-dust-t4": { name: "Prime vial of Martian dust (T4)", tier: "T4", group: "Vial of Martian Dust", keep: true, recipe: { "hermetic-vial-of-martian-dust-t3": 8, "radiant-tau-ceti-geode-t3": 1 } },
+"reggference-titanium-actuator-t4": { name: "Reggference titanium actuator (T4)", tier: "T4", group: "Titanium Actuator", keep: true, recipe: { "precise-titanium-actuator-t3": 8 } },
+"detailed-ship-in-a-bottle-t2": { name: "Detailed ship in a bottle (T2)", tier: "T2", group: "Ship in a bottle", keep: false, recipe: {} },
+"eggsquisite-tachyon-stone-t3": { name: "Eggsquisite tachyon stone (T3)", tier: "T3", group: "Tachyon Stone", keep: false, recipe: {} },
+"good-life-stone-t3": { name: "Good life stone (T3)", tier: "T3", group: "Life Stone", keep: false, recipe: {} },
+"powerful-lunar-totem-t3": { name: "Powerful lunar totem (T3)", tier: "T3", group: "Lunar Totem", keep: false, recipe: {} },
+"precise-neodymium-medallion-t3": { name: "Precise neodymium medallion (T3)", tier: "T3", group: "Neodymium Medallion", keep: false, recipe: {} },
+"robust-tachyon-deflector-t3": { name: "Robust tachyon deflector (T3)", tier: "T3", group: "Tachyon Deflector", keep: false, recipe: {} },
+"eggsacting-dilithium-monocle-t3": { name: "Eggsacting dilithium monocle (T3)", tier: "T3", group: "Dilithium Monocle", keep: false, recipe: {} },
+"eggsquisite-shell-stone-t3": { name: "Eggsquisite shell stone (T3)", tier: "T3", group: "Shell Stone", keep: false, recipe: {} },
+"fortified-book-of-basan-t3": { name: "Fortified book of Basan (T3)", tier: "T3", group: "Book of Basan", keep: false, recipe: {} },
+"distegguished-gusset-t3": { name: "Distegguished gusset (T3)", tier: "T3", group: "Gusset", keep: false, recipe: {} },
+"ornate-carved-rainstick-t3": { name: "Ornate carved rainstick (T3)", tier: "T3", group: "Carved Rainstick", keep: false, recipe: {} },
+"hermetic-vial-of-martian-dust-t3": { name: "Hermetic vial of Martian dust (T3)", tier: "T3", group: "Vial of Martian Dust", keep: false, recipe: {} },
+"precise-titanium-actuator-t3": { name: "Precise titanium actuator (T3)", tier: "T3", group: "Titanium Actuator", keep: false, recipe: {} },
+"mystical-puzzle-cube-t3": { name: "Mystical puzzle cube (T3)", tier: "T3", group: "Puzzle Cube", keep: false, recipe: {} },
+"soul-stone-fragment-t1": { name: "Soul stone fragment (T1)", tier: "T1", group: "Soul Stone", keep: false, recipe: {} },
+"eggsquisite-soul-stone-t3": { name: "Eggsquisite soul stone (T3)", tier: "T3", group: "Soul Stone", keep: false, recipe: {} },
+"lunar-stone-t2": { name: "Lunar stone (T2)", tier: "T2", group: "Lunar Stone", keep: false, recipe: {} },
+"eggsquisite-lunar-stone-t3": { name: "Eggsquisite lunar stone (T3)", tier: "T3", group: "Lunar Stone", keep: false, recipe: {} },
+"phased-quantum-stone-t3": { name: "Phased quantum stone (T3)", tier: "T3", group: "Quantum Stone", keep: false, recipe: {} },
+"lunar-stone-fragment-t1": { name: "Lunar stone fragment (T1)", tier: "T1", group: "Lunar Stone", keep: false, recipe: {} },
+"tau-ceti-geode-piece-t1": { name: "Tau Ceti geode piece (T1)", tier: "T1", group: "Tau Ceti Geode", keep: false, recipe: { "glimmering-tau-ceti-geode-t2": 14 } },
+"blazing-phoenix-feather-t4": { name: "Blazing phoenix feather (T4)", tier: "T4", group: "Phoenix Feather", keep: true, recipe: {} },
+"eggquisite-ship-in-a-bottle-t4": { name: "Eggquisite ship in a bottle (T4)", tier: "T4", group: "Ship in a bottle", keep: true, recipe: {} },
+"meggnificent-mercurys-lens-t4": { name: "Meggnificent Mercury's lens (T4)", tier: "T4", group: "Mercury's Lens", keep: true, recipe: {} },
+"reggference-quantum-metronome-t4": { name: "Reggference quantum metronome (T4)", tier: "T4", group: "Quantum Metronome", keep: true, recipe: {} },
+
+"quantum-stone-t2": { name: "Quantum stone (T2)", tier: "T2", group: "Quantum Stone", keep: false, recipe: {} },
+"soul-stone-t2": { name: "Soul stone (T2)", tier: "T2", group: "Soul Stone", keep: false, recipe: {} },
+"prophecy-stone-t4": { name: "Prophecy stone (T4)", tier: "T4", group: "Prophecy Stone", keep: true, recipe: {} },
+"geode-piece-t1": { name: "Geode piece (T1)", tier: "T1", group: "Tau Ceti Geode", keep: false, recipe: {} },
+"gold-meteorite-t1": { name: "Gold meteorite (T1)", tier: "T1", group: "Gold Meteorite", keep: false, recipe: {} },
+"tachyon-stone-t2": { name: "Tachyon stone (T2)", tier: "T2", group: "Tachyon Stone", keep: false, recipe: {} },
+"terra-stone-t2": { name: "Terra stone (T2)", tier: "T2", group: "Terra Stone", keep: false, recipe: {} },
+
+    };
+
+
+  const PERMANENT_PROTECTED = new Set([
+        "gold-meteorite-t1", 
+        "geode-piece-t1", 
+        "prophecy-stone-t4", 
+        "radiant-soul-stone-t4", 
+        "lunar-stone-fragment-t1", 
+        "quantum-stone-fragment-t1",
+        "solar-titanium-bar-t2"
+    ]);
+
+    function init() {
+        const tree = document.getElementById('selection-tree');
+        const groups = {};
+
+        Object.keys(ARTIFACT_DB).forEach(id => {
+            const item = ARTIFACT_DB[id];
+            if(!groups[item.group]) groups[item.group] = [];
+            groups[item.group].push({id, ...item});
+        });
+
+        for (const g in groups) {
+            tree.innerHTML += `<div class="group-header">${g}</div>`;
+            groups[g].forEach(item => {
+                tree.innerHTML += `<div class="artifact-item">
+                    <input type="checkbox" value="${item.id}" onchange="calculate()"> ${item.name}
+                </div>`;
+            });
+        }
+    }
+
+    function calculate() {
+        const checked = document.querySelectorAll('input:checked');
+        let protected = new Set(PERMANENT_PROTECTED);
+        checked.forEach(c => protected.add(c.value));
+        
+        function track(id) {
+            const item = ARTIFACT_DB[id];
+            if(item?.recipe) Object.keys(item.recipe).forEach(sub => { if(!protected.has(sub)) { protected.add(sub); track(sub); } });
+        }
+        checked.forEach(c => track(c.value));
+        
+        const keep = document.getElementById('keep-list');
+        const salvage = document.getElementById('salvage-list');
+        keep.innerHTML = ''; salvage.innerHTML = '';
+
+        Object.keys(ARTIFACT_DB).forEach(id => {
+            const isProt = protected.has(id);
+            const html = `<div class="item-row"><span class="${isProt ? 'keep' : 'salvage'}">${ARTIFACT_DB[id].name}</span></div>`;
+            if(isProt) keep.innerHTML += html; else salvage.innerHTML += html;
+        });
+    }
+
+    function toggleTheme() {
+        document.documentElement.setAttribute('data-theme', (document.documentElement.getAttribute('data-theme') === 'light') ? 'dark' : 'light');
+    }
+    
+    document.documentElement.setAttribute('data-theme', 'dark');
+
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM ist bereit.");
+    
+    // Test: Überprüfen, ob die DB überhaupt existiert
+    if (typeof ARTIFACT_DB !== 'undefined') {
+        console.log("DB gefunden, Länge:", Object.keys(ARTIFACT_DB).length);
+        init();
+    } else {
+        console.error("FEHLER: ARTIFACT_DB wurde nicht gefunden!");
+    }
+});
+
+</script>
+</body>
+</html>
